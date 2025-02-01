@@ -1,2 +1,3 @@
-# LiquidCrystal_I2C
-LiquidCrystal Arduino library for the DFRobot I2C LCD displays
+# UnforeLibrary
+
+A library that makes Freenove Ultimate Starter Kit for Raspberry Pi easier to use via the Arduino IDE

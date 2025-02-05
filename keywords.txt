@@ -6,7 +6,10 @@
 # Datatypes (KEYWORD1)
 ###########################################
 
-LiquidCrystal_I2C	KEYWORD1
+UnforeLibrary	KEYWORD1
+KeyState	KEYWORD1
+Keypad	KEYWORD1
+KeypadEvent	KEYWORD1
 
 ###########################################
 # Methods and Functions (KEYWORD2)
@@ -41,6 +44,34 @@ cursor_off	KEYWORD2
 setBacklight	KEYWORD2
 load_custom_character	KEYWORD2
 printstr	KEYWORD2
+addEventListener	KEYWORD2
+bitMap	KEYWORD2
+findKeyInList	KEYWORD2
+getKey	KEYWORD2
+getKeys	KEYWORD2
+getState	KEYWORD2
+holdTimer	KEYWORD2
+isPressed	KEYWORD2
+keyStateChanged	KEYWORD2
+numKeys	KEYWORD2
+pin_mode	KEYWORD2
+pin_write	KEYWORD2
+pin_read	KEYWORD2
+setDebounceTime	KEYWORD2
+setHoldTime	KEYWORD2
+waitForKey	KEYWORD2
+
+# this is a macro that converts 2d arrays to pointers
+makeKeymap	KEYWORD2
+
+#list of objects created in the example sketches
+
+kpd	KEYWORD3
+keypad	KEYWORD3
+kbrd	KEYWORD3
+keyboard	KEYWORD3
+
+
 ###########################################
 # Constants (LITERAL1)
 ###########################################

@@ -30,10 +30,10 @@
 ||
 */
 
-#ifndef KEYPAD_H
-#define KEYPAD_H
+#ifndef UnforeLibrary
+#define UnforeLibrary
 
-#include "Key.h"
+// #include "Key.h"
 
 // bperrybap - Thanks for a well reasoned argument and the following macro(s).
 // See http://arduino.cc/forum/index.php/topic,142041.msg1069480.html#msg1069480
@@ -41,19 +41,27 @@
 #warning "Using  pinMode() INPUT_PULLUP AVR emulation"
 #define INPUT_PULLUP 0x2
 #define pinMode(_pin, _mode) _mypinMode(_pin, _mode)
-#define _mypinMode(_pin, _mode)  \
-do {							 \
-	if(_mode == INPUT_PULLUP)	 \
-		pinMode(_pin, INPUT);	 \
-		digitalWrite(_pin, 1);	 \
-	if(_mode != INPUT_PULLUP)	 \
-		pinMode(_pin, _mode);	 \
-}while(0)
+#define _mypinMode(_pin, _mode)    \
+	do                             \
+	{                              \
+		if (_mode == INPUT_PULLUP) \
+			pinMode(_pin, INPUT);  \
+		digitalWrite(_pin, 1);     \
+		if (_mode != INPUT_PULLUP) \
+			pinMode(_pin, _mode);  \
+	} while (0)
 #endif
-
 
 #define OPEN LOW
 #define CLOSED HIGH
+
+typedef enum
+{
+	IDLE,
+	PRESSED,
+	HOLD,
+	RELEASED
+} KeyState;
 
 typedef char KeypadEvent;
 typedef unsigned int uint;
@@ -61,27 +69,89 @@ typedef unsigned long ulong;
 
 // Made changes according to this post http://arduino.cc/forum/index.php?topic=58337.0
 // by Nick Gammon. Thanks for the input Nick. It actually saved 78 bytes for me. :)
-typedef struct {
-    byte rows;
-    byte columns;
+typedef struct
+{
+	byte rows;
+	byte columns;
 } KeypadSize;
 
-#define LIST_MAX 10		// Max number of keys on the active list.
-#define MAPSIZE 10		// MAPSIZE is the number of rows (times 16 columns)
-#define makeKeymap(x) ((char*)x)
+#define LIST_MAX 10 // Max number of keys on the active list.
+#define MAPSIZE 10	// MAPSIZE is the number of rows (times 16 columns)
+#define makeKeymap(x) ((char *)x)
 
+const char NO_KEY = '\0';
 
-//class Keypad : public Key, public HAL_obj {
-class Keypad : public Key {
+#include <inttypes.h>
+#include "Print.h"
+#include <Wire.h>
+
+// commands
+#define LCD_CLEARDISPLAY 0x01
+#define LCD_RETURNHOME 0x02
+#define LCD_ENTRYMODESET 0x04
+#define LCD_DISPLAYCONTROL 0x08
+#define LCD_CURSORSHIFT 0x10
+#define LCD_FUNCTIONSET 0x20
+#define LCD_SETCGRAMADDR 0x40
+#define LCD_SETDDRAMADDR 0x80
+
+// flags for display entry mode
+#define LCD_ENTRYRIGHT 0x00
+#define LCD_ENTRYLEFT 0x02
+#define LCD_ENTRYSHIFTINCREMENT 0x01
+#define LCD_ENTRYSHIFTDECREMENT 0x00
+
+// flags for display on/off control
+#define LCD_DISPLAYON 0x04
+#define LCD_DISPLAYOFF 0x00
+#define LCD_CURSORON 0x02
+#define LCD_CURSOROFF 0x00
+#define LCD_BLINKON 0x01
+#define LCD_BLINKOFF 0x00
+
+// flags for display/cursor shift
+#define LCD_DISPLAYMOVE 0x08
+#define LCD_CURSORMOVE 0x00
+#define LCD_MOVERIGHT 0x04
+#define LCD_MOVELEFT 0x00
+
+// flags for function set
+#define LCD_8BITMODE 0x10
+#define LCD_4BITMODE 0x00
+#define LCD_2LINE 0x08
+#define LCD_1LINE 0x00
+#define LCD_5x10DOTS 0x04
+#define LCD_5x8DOTS 0x00
+
+// flags for backlight control
+#define LCD_BACKLIGHT 0x08
+#define LCD_NOBACKLIGHT 0x00
+
+#define En B00000100 // Enable bit
+#define Rw B00000010 // Read/Write bit
+#define Rs B00000001 // Register select bit
+
+// class Keypad : public Key, public HAL_obj {
+class Keypad : public Key
+{
 public:
+	char kchar;
+	int kcode;
+	KeyState kstate;
+	boolean stateChanged;
+
+	// methods
+	Key();
+	Key(char userKeyChar);
+	void key_update(char userKeyChar, KeyState userState, boolean userStatus);
 
 	Keypad(char *userKeymap, byte *row, byte *col, byte numRows, byte numCols);
 
 	virtual void pin_mode(byte pinNum, byte mode) { pinMode(pinNum, mode); }
 	virtual void pin_write(byte pinNum, boolean level) { digitalWrite(pinNum, level); }
-	virtual int  pin_read(byte pinNum) { return digitalRead(pinNum); }
+	virtual int pin_read(byte pinNum) { return digitalRead(pinNum); }
 
-	uint bitMap[MAPSIZE];	// 10 row x 16 column array of bits. Except Due which has 32 columns.
+	uint bitMap[MAPSIZE]; // 10 row x 16 column array of bits. Except Due which has 32 columns.
 	Key key[LIST_MAX];
 	unsigned long holdTimer;
 
@@ -98,16 +168,82 @@ public:
 	char waitForKey();
 	bool keyStateChanged();
 	byte numKeys();
+	LiquidCrystal_I2C(uint8_t lcd_Addr, uint8_t lcd_cols, uint8_t lcd_rows);
+	void begin(uint8_t cols, uint8_t rows, uint8_t charsize = LCD_5x8DOTS);
+	void clear();
+	void home();
+	void noDisplay();
+	void display();
+	void noBlink();
+	void blink();
+	void noCursor();
+	void cursor();
+	void scrollDisplayLeft();
+	void scrollDisplayRight();
+	void printLeft();
+	void printRight();
+	void leftToRight();
+	void rightToLeft();
+	void shiftIncrement();
+	void shiftDecrement();
+	void noBacklight();
+	void backlight();
+	void autoscroll();
+	void noAutoscroll();
+	void createChar(uint8_t, uint8_t[]);
+	void setCursor(uint8_t, uint8_t);
+#if defined(ARDUINO) && ARDUINO >= 100
+	virtual size_t write(uint8_t);
+#else
+	virtual void write(uint8_t);
+#endif
+	void command(uint8_t);
+	void init();
+
+	////compatibility API function aliases
+	void blink_on();											 // alias for blink()
+	void blink_off();											 // alias for noBlink()
+	void cursor_on();											 // alias for cursor()
+	void cursor_off();											 // alias for noCursor()
+	void setBacklight(uint8_t new_val);							 // alias for backlight() and nobacklight()
+	void load_custom_character(uint8_t char_num, uint8_t *rows); // alias for createChar()
+	void printstr(const char[]);
+
+	////Unsupported API functions (not implemented in this library)
+	uint8_t status();
+	void setContrast(uint8_t new_val);
+	uint8_t keypad();
+	void setDelay(int, int);
+	void on();
+	void off();
+	uint8_t init_bargraph(uint8_t graphtype);
+	void draw_horizontal_graph(uint8_t row, uint8_t column, uint8_t len, uint8_t pixel_col_end);
+	void draw_vertical_graph(uint8_t row, uint8_t column, uint8_t len, uint8_t pixel_col_end);
 
 private:
 	unsigned long startTime;
 	char *keymap;
-    byte *rowPins;
-    byte *columnPins;
+	byte *rowPins;
+	byte *columnPins;
 	KeypadSize sizeKpd;
 	uint debounceTime;
 	uint holdTime;
 	bool single_key;
+
+	void init_priv();
+	void send(uint8_t, uint8_t);
+	void write4bits(uint8_t);
+	void expanderWrite(uint8_t);
+	void pulseEnable(uint8_t);
+	uint8_t _Addr;
+	uint8_t _displayfunction;
+	uint8_t _displaycontrol;
+	uint8_t _displaymode;
+	uint8_t _numlines;
+	uint8_t _cols;
+	uint8_t _rows;
+	uint8_t _backlightval;
+
 
 	void scanKeys();
 	bool updateList();
@@ -120,6 +256,7 @@ private:
 
 /*
 || @changelog
+|| | 4.1 2025-02-06 - Unforetold	   : Added some libraries
 || | 3.1 2013-01-15 - Mark Stanley     : Fixed missing RELEASED & IDLE status when using a single key.
 || | 3.0 2012-07-12 - Mark Stanley     : Made library multi-keypress by default. (Backwards compatible)
 || | 3.0 2012-07-12 - Mark Stanley     : Modified pin functions to support Keypad_I2C
